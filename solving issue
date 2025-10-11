@@ -1,0 +1,69 @@
+import arviz as az
+from arviz_plots import combine_plots
+import csv
+import os
+
+# ===========================
+# Step 1: Define your datasets
+# ===========================
+
+# Default example dataset
+default_data = az.load_arviz_data("non_centered_eight")
+
+# Example: synthetic variation (merge chain and draw into a single sample dimension)
+def merge_chain_draw(data):
+    new_data = data.copy()
+    for var in new_data.data_vars:
+        arr = new_data[var].values
+        shape = arr.shape
+        # Merge first two dimensions (chain, draw) into one sample dimension
+        new_arr = arr.reshape(-1, *shape[2:])
+        new_data[var] = (("sample",) + data[var].dims[2:], new_arr)
+    return new_data
+
+merged_data = merge_chain_draw(default_data)
+
+# Add more datasets or variations as needed
+datasets = {
+    "default": default_data,
+    "merged_chain_draw": merged_data,
+    # "custom_dataset": custom_data
+}
+
+# ===========================
+# Step 2: Define plot layouts
+# ===========================
+
+layouts = [
+    {"plots": ["plot1", "plot2"]},  # adjust according to actual plot_xyz functions
+    {"plots": ["plot2", "plot1"]},
+    # Add more layout variations if needed
+]
+
+# ===========================
+# Step 3: Test combine_plots and log results
+# ===========================
+
+results = []
+
+for ds_name, data in datasets.items():
+    for layout in layouts:
+        try:
+            print(f"\nTesting dataset: {ds_name}, layout: {layout}")
+            combine_plots(data, **layout)  # Adjust kwargs according to combine_plots signature
+            results.append((ds_name, str(layout), " Success", ""))
+        except Exception as e:
+            results.append((ds_name, str(layout), " Failed", str(e)))
+
+# ===========================
+# Step 4: Save results to CSV
+# ===========================
+
+output_file = "combine_plots_test_results.csv"
+with open(output_file, mode="w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["Dataset", "Layout", "Result", "Error"])
+    for row in results:
+        writer.writerow(row)
+
+print(f"\nAll test results saved to {os.path.abspath(output_file)}")
